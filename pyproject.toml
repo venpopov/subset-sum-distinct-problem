@@ -1,5 +1,6 @@
 [project]
 dependencies = [
+  "pandas>=2.3.3",
   "pytest>=9.0.1",
 ]
 description = "Add your description here"

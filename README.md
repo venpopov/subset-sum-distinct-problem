@@ -58,7 +58,7 @@ To generate some sequences (parallel cores):
 
 ```bash
 python src/generate_sequences.py --workers 1 --seeds 1,2 --max-n 30 --check-ssd
-python src/generate_sequences.py --workers 13 --seeds 1,1 1,2 1,3 1,4 2,1 3,2 4,2  --max-n 40 --check-ssd
+python src/generate_sequences.py --workers 1 --seeds 1,1 1,2 1,3 1,4 2,1 3,2 4,2  --max-n 35 --check-ssd
 ```
 
 To generate default sequences:

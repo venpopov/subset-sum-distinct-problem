@@ -54,10 +54,16 @@ All data and verification logs are included in `/data` and `/results`.
 
 ## 🧪 Reproducibility
 
-To regenerate all sequences:
+To generate some sequences (parallel cores):
 
 ```bash
-python src/generate_sequences.py --seed 1,1 --max-n 20 --check-ssd
+python generate_sequences.py --workers 12 --seeds 2,1 1,1 3,2 --max-n 5 --check-ssd
+```
+
+To generate default sequences:
+
+```bash
+python src/generate_sequences.py --workers 12 --check-ssd 
 ```
 
 To test DSS:

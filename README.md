@@ -57,13 +57,13 @@ All data and verification logs are included in `/data` and `/results`.
 To regenerate all sequences:
 
 ```bash
-python code/generate_sequences.py --seed 2 1 --max_n 20
+python src/generate_sequences.py --seed 1,1 --max-n 20 --check-ssd
 ```
 
 To test DSS:
 
 ```bash
-python code/ssd_check.py data/P_sets_seed_2_1.json
+python src/ssd_check.py data/P_sets_seed_2_1.json
 ```
 
 Two independent brute-force checkers are provided:

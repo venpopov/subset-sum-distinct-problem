@@ -1,21 +1,35 @@
+"""
+Motzkin–greedy construction for distinct subset sums.
+
+Core responsibilities:
+- Generate truncated Motzkin height profiles S'(n)
+- Compute F(n) of weighted areas
+- Compute the Motzkin–greedy difference sequence d(n)
+"""
+
 from functools import lru_cache
+from typing import List, Tuple, Dict
 
-# ---------- Motzkin profiles ----------
 
-
-def motzkin_trunc_profiles(n):
+def _motzkin_trunc_profiles(n: int) -> List[Tuple[int, ...]]:
     """
-    Return all truncated Motzkin height profiles z in S'(n):
-    h_0,...,h_{n-1} with:
-      - h_0 = h_{n-1} = 0
-      - h_i >= 0
-      - |h_{i+1} - h_i| in { -1, 0, 1 }
-    and z = (h_1,...,h_{n-2}), excluding the completely flat path.
-    """
-    res = []
+    Generate all truncated Motzkin height profiles z in S'(n).
 
-    def rec(pos, h, hs):
-        # pos: index 0..n-1, h: current height, hs: height list
+    A full profile h = (h_0,...,h_{n-1}) satisfies:
+        - h_0 = h_{n-1} = 0
+        - h_i >= 0
+        - |h_{i+1} - h_i| in { -1, 0, 1 }
+
+    We return z = (h_1,...,h_{n-2}) and exclude the completely flat path.
+    """
+    res: List[Tuple[int, ...]] = []
+
+    def rec(pos: int, h: int, hs: List[int]) -> None:
+        """
+        pos: current index in 0..n-1
+        h:   current height
+        hs:  list of heights [h_0,...,h_pos]
+        """
         if pos == n - 1:
             # must return to 0
             if h == 0:
@@ -30,7 +44,7 @@ def motzkin_trunc_profiles(n):
             nh = h + delta
             if nh < 0:
                 continue
-            # must be able to get back down to 0 in "remaining" steps
+            # must be able to get back to 0 in "remaining" steps with step size 1
             if nh > remaining:
                 continue
             rec(pos + 1, nh, hs + [nh])
@@ -40,104 +54,48 @@ def motzkin_trunc_profiles(n):
 
 
 @lru_cache(None)
-def motzkin_trunc_profiles_cached(n):
-    return motzkin_trunc_profiles(n)
-
-
-# ---------- Motzkin-greedy for a given seed ----------
-
-
-def motzkin_greedy(max_n, d1, d2):
+def motzkin_trunc_profiles(n: int) -> List[Tuple[int, ...]]:
     """
-    Compute d(1)..d(max_n) via the Motzkin-greedy rule:
-      d(1) = d1, d(2) = d2
-      for n > 2:
-        F(n) = { sum_{i=1}^{n-2} z(i)*d(i) : z in S'(n) }
-        d(n) = smallest positive integer not in F(n)
+    Cached wrapper for truncated Motzkin profiles S'(n).
     """
-    d = {1: d1}
+    return _motzkin_trunc_profiles(n)
+
+
+def motzkin_greedy(max_n: int, d1: int, d2: int) -> List[int]:
+    """
+    Compute the Motzkin–greedy difference sequence d(1)..d(max_n)
+    with initial seed (d(1), d(2)) = (d1, d2).
+
+    Recurrence:
+        For n > 2:
+            F(n) = { sum_{i=1}^{n-2} z(i)*d(i) : z in S'(n) }
+            d(n) = smallest positive integer NOT in F(n)
+
+    Returns:
+        d_seq: list [d(1), ..., d(max_n)]
+    """
+    if max_n < 1:
+        return []
+
+    d: Dict[int, int] = {1: d1}
     if max_n >= 2:
         d[2] = d2
 
     for n in range(3, max_n + 1):
-        z_list = motzkin_trunc_profiles_cached(n)
+        z_list = motzkin_trunc_profiles(n)
         F = set()
+
         for z in z_list:
             s = 0
-            # z has length n-2; indices i = 1..n-2
+            # z has length n-2, indices i = 1..n-2
             for i, zi in enumerate(z, start=1):
                 s += zi * d[i]
             if s > 0:
                 F.add(s)
+
         k = 1
         while k in F:
             k += 1
         d[n] = k
 
     return [d[i] for i in range(1, max_n + 1)]
-
-
-# ---------- P from d, and SSD checker ----------
-
-
-def P_from_d_prefix(d_prefix):
-    """
-    Given d_1..d_n, construct decreasing P:
-      p_k = sum_{j=k}^n d_j
-    """
-    s = 0
-    p_rev = []
-    for dj in reversed(d_prefix):
-        s += dj
-        p_rev.append(s)
-    return list(reversed(p_rev))  # [p_1,...,p_n]
-
-
-# ---------- Experiment driver ----------
-
-
-def analyze_seed(seed, max_n):
-    d1, d2 = seed
-    print(f"\n=== Seed {seed}, max_n={max_n} ===")
-    d_seq = motzkin_greedy(max_n, d1, d2)
-    print("d-sequence:")
-    print(d_seq)
-
-    ssd_flags = []
-    maxP_list = []
-    first_fail = None
-
-    for n in range(1, max_n + 1):
-        Pn = P_from_d_prefix(d_seq[:n])
-        ok, info = is_distinct_subset_sum(Pn)
-        ssd_flags.append(1 if ok else 0)
-        maxP_list.append(Pn[0])
-        if not ok and first_fail is None:
-            first_fail = n
-        if not ok:
-            print(f"n={n}: NOT DSS, collision: {info}")
-        # Uncomment to see all Pn:
-        # print(f"n={n}: P={Pn}, SSD={ok}")
-
-    print("SSD flags (1=DSS, 0=collision) for n=1..max_n:")
-    print(ssd_flags)
-    print("max P_n for n=1..max_n:")
-    print(maxP_list)
-    if first_fail is None:
-        print("No SSD failure up to n =", max_n)
-    else:
-        print("First SSD failure at n =", first_fail)
-
-
-if __name__ == "__main__":
-    max_n = 20  # adjust if you want to push higher
-    seeds = [
-        (3, 2),  # extend this one
-        (2, 2),
-        (4, 1),
-        (4, 2),
-        (1, 4),
-        (3, 3),  # my extra pick
-    ]
-    for seed in seeds:
-        analyze_seed(seed, max_n)

@@ -26,12 +26,16 @@ COMMAND-LINE ARGUMENTS:
             - summary_seed_{d1}_{d2}.csv : Tabular summary (n, d_n, maxP, SSD_flag)
 
     --check-ssd
-        Enable brute-force DSS (distinct subset sum) verification.
+        Enable DSS (distinct subset sum) verification using the optimized bitset algorithm.
         Without this flag, SSD_flag will be -1 in output files.
-        When enabled, uses two independent checkers:
+        This is the fast method: O(n * sum(P)) complexity.
+
+    --check-ssd-slow
+        Enable brute-force DSS verification using two independent slow checkers:
             - Combinatorial enumeration (itertools.combinations)
             - Bitmask enumeration
-        Note: Significantly increases computation time for large n.
+        Both have O(2^n) complexity.
+        Note: Significantly slower than --check-ssd, use only for verification.
 
     --workers N
         Number of parallel worker processes (default: auto-detect CPU count).
@@ -103,13 +107,16 @@ from utils import P_from_d_prefix, parse_seed
 from ssd_check import (
     is_distinct_subset_sum_combinations,
     is_distinct_subset_sum_bitmask,
+    is_distinct_subset_sum_optimized,
 )
 
 # Setup logging for multiprocessing
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
-def generate_for_seed(seed: str, max_n: int, out_dir: Path, check_ssd: bool) -> Tuple[str, bool]:
+def generate_for_seed(
+    seed: str, max_n: int, out_dir: Path, check_ssd: bool, check_ssd_slow: bool = False
+) -> Tuple[str, bool]:
     """
     Generate sequences for a single seed. Returns (seed_str, success).
     """
@@ -143,18 +150,27 @@ def generate_for_seed(seed: str, max_n: int, out_dir: Path, check_ssd: bool) -> 
                 "maxP": maxP,
             }
 
-            if check_ssd:
-                ok_c, info_c = is_distinct_subset_sum_combinations(Pn)
-                ok_b, info_b = is_distinct_subset_sum_bitmask(Pn)
-                # they should agree
-                if ok_c != ok_b:
-                    logging.warning(f"Seed ({d1},{d2}), n={n}: SSD checkers disagree")
-                ok = ok_c and ok_b
-                ssd_flags.append(1 if ok else 0)
-                record["ssd"] = ok
-                if not ok:
-                    record["collision_combinations"] = info_c
-                    record["collision_bitmask"] = info_b
+            if check_ssd or check_ssd_slow:
+                if check_ssd_slow:
+                    # Use slow brute-force checkers for verification
+                    ok_c, info_c = is_distinct_subset_sum_combinations(Pn)
+                    ok_b, info_b = is_distinct_subset_sum_bitmask(Pn)
+                    # they should agree
+                    if ok_c != ok_b:
+                        logging.warning(f"Seed ({d1},{d2}), n={n}: SSD checkers disagree")
+                    ok = ok_c and ok_b
+                    ssd_flags.append(1 if ok else 0)
+                    record["ssd"] = ok
+                    if not ok:
+                        record["collision_combinations"] = info_c
+                        record["collision_bitmask"] = info_b
+                else:
+                    # Use fast optimized checker
+                    ok, info = is_distinct_subset_sum_optimized(Pn)
+                    ssd_flags.append(1 if ok else 0)
+                    record["ssd"] = ok
+                    if not ok:
+                        record["collision_optimized"] = info
 
             P_data[n] = record
 
@@ -180,10 +196,10 @@ def generate_for_seed(seed: str, max_n: int, out_dir: Path, check_ssd: bool) -> 
         return (seed, False)
 
 
-def _worker_wrapper(args: Tuple[str, int, Path, bool]) -> Tuple[str, bool]:
+def _worker_wrapper(args: Tuple[str, int, Path, bool, bool]) -> Tuple[str, bool]:
     """Wrapper for multiprocessing pool."""
-    seed, max_n, out_dir, check_ssd = args
-    return generate_for_seed(seed, max_n, out_dir, check_ssd)
+    seed, max_n, out_dir, check_ssd, check_ssd_slow = args
+    return generate_for_seed(seed, max_n, out_dir, check_ssd, check_ssd_slow)
 
 
 def main() -> None:
@@ -210,7 +226,12 @@ def main() -> None:
     parser.add_argument(
         "--check-ssd",
         action="store_true",
-        help="If set, run brute-force DSS checks for each P_n.",
+        help="If set, run fast optimized DSS checks for each P_n.",
+    )
+    parser.add_argument(
+        "--check-ssd-slow",
+        action="store_true",
+        help="If set, run slow brute-force DSS checks (combinations + bitmask) for verification.",
     )
     parser.add_argument(
         "--workers",
@@ -224,11 +245,22 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     num_workers = args.workers
 
+    # Validate that both check-ssd flags aren't set together
+    if args.check_ssd and args.check_ssd_slow:
+        logging.warning("Both --check-ssd and --check-ssd-slow specified. Using slow checkers.")
+        args.check_ssd = False
+
     logging.info(f"Starting parallel generation for {len(args.seeds)} seed(s)")
     logging.info(f"Using {num_workers or 'auto'} worker(s)")
+    if args.check_ssd:
+        logging.info("SSD checking: ENABLED (optimized bitset method)")
+    elif args.check_ssd_slow:
+        logging.info("SSD checking: ENABLED (slow brute-force methods)")
+    else:
+        logging.info("SSD checking: DISABLED")
 
     # Prepare work items
-    work_items = [(seed, args.max_n, out_dir, args.check_ssd) for seed in args.seeds]
+    work_items = [(seed, args.max_n, out_dir, args.check_ssd, args.check_ssd_slow) for seed in args.seeds]
 
     # Process in parallel
     with Pool(processes=num_workers) as pool:

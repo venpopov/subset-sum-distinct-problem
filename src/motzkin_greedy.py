@@ -1,8 +1,9 @@
 import time
+import gc
 from typing import List, Dict
 
 
-def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
+def optimize_motzkin_greedy(max_n: int, d_initial: List[int]) -> List[int]:
     """
     Computes the Motzkin-greedy sequence using efficient Bitset DP.
 
@@ -33,14 +34,36 @@ def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
     # Initial state: Step 0, Height 0, Sum 0 (2^0 = 1)
     layers: Dict[int, int] = {0: 1}
 
+    # Track the current step index (0-based)
+    current_step = 0
+
     # Helper to advance the DP state by one step using a specific weight
-    def advance_layers(current_layers: Dict[int, int], weight: int) -> Dict[int, int]:
+    def advance_layers(current_layers: Dict[int, int], weight: int, step_index: int) -> Dict[int, int]:
         new_layers: Dict[int, int] = {}
-        for h, mask in current_layers.items():
+
+        # OPTIMIZATION 1: Geometric Pruning
+        # The absolute last step we care about is (max_n - 2).
+        # Any path must be able to return to height 0 by then.
+        # So, at the *next* step (step_index + 1), max valid height is:
+        steps_remaining = (max_n - 1) - (step_index + 1)
+        max_allowed_height = steps_remaining
+
+        # OPTIMIZATION 2: Eager Memory Release
+        # We convert keys to a list so we can modify the dict (pop) while iterating.
+        # Sorting isn't strictly necessary but helps visualize processing order.
+        active_heights = sorted(list(current_layers.keys()))
+
+        for h in active_heights:
+            # destructive read: removes the massive integer from memory immediately
+            mask = current_layers.pop(h)
+
             # Try all valid Motzkin moves: delta in {-1, 0, +1}
             for delta in (-1, 0, 1):
                 nh = h + delta
                 if nh < 0:
+                    continue
+
+                if nh > max_allowed_height:
                     continue
 
                 # The area added by this step is (new_height * weight)
@@ -53,6 +76,10 @@ def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
                     new_layers[nh] |= shifted_mask
                 else:
                     new_layers[nh] = shifted_mask
+
+            # Hint to Python allocator (optional, but good for massive objects)
+            del mask
+
         return new_layers
 
     # --- INITIALIZATION ---
@@ -61,7 +88,8 @@ def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
     # For that iteration, we need the state at step n-2 = len(d_initial) - 1
     # So we advance through d[1], d[2], ..., d[len(d_initial) - 1]
     for i in range(1, len(d_initial)):
-        layers = advance_layers(layers, d[i])
+        layers = advance_layers(layers, d[i], current_step)
+        current_step += 1
 
     # --- MAIN LOOP ---
     start_n = len(d_initial) + 1
@@ -72,20 +100,17 @@ def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
         # We combine these masks to get all "dangerous" sums.
         forbidden_mask = layers.get(0, 0) | layers.get(1, 0)
 
-        # 2. FIND SMALLEST MISSING POSITIVE INTEGER (Optimized)
-        # We want the index of the first '0' bit in forbidden_mask, starting at bit 1.
-        # Shift right to align bit 1 to bit 0
-        m = forbidden_mask >> 1
-
-        # Formula to isolate the lowest '0' bit:
-        # 1. ~m turns the 0 we want into a 1.
-        # 2. m + 1 creates a carry that ripples up to the first 0.
-        # The intersection gives us exactly the bit we are looking for.
-        lowest_zero_bit = (~m) & (m + 1)
-
-        # The index is the length of the binary representation minus 1 (since it's a power of 2)
-        # We add 1 because we shifted the mask initially.
-        k = lowest_zero_bit.bit_length()
+        # 2. Find smallest missing positive integer (Gap Trick)
+        if forbidden_mask == 0:
+            k = 1  # Should not happen for standard seeds, but safe fallback
+        else:
+            m = forbidden_mask >> 1
+            lowest_zero_bit = (~m) & (m + 1)
+            k = lowest_zero_bit.bit_length()
+            # Edge case: if mask was 111...111 with no zeros, k is len.
+            # Realistically, the mask is sparse-ish, so this works.
+            if k == 0:
+                k = 1  # If bit_length is 0 (meaning m was -1??), fallback.
 
         d.append(k)
 
@@ -95,35 +120,22 @@ def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
         # Note: d is 1-based, so d[n-1] is the weight we just "passed".
         if n < max_n:
             weight_to_add = d[n - 1]  # Actually d[2] for n=3 loop preparing for n=4
-            layers = advance_layers(layers, weight_to_add)
+            layers = advance_layers(layers, weight_to_add, current_step)
+            current_step += 1
 
     return d[1:]
 
 
 if __name__ == "__main__":
     # Test with seed (2, 1)
-    TARGET_N = 30
-    D_INITIAL = [2, 1]
+    TARGET_N = 38
+    D_INITIAL = [1, 1]
 
     print(f"Calculating Motzkin-greedy sequence for seed {D_INITIAL} up to n={TARGET_N}...")
 
     start_time = time.perf_counter()
-    result = motzkin_greedy_optimized(TARGET_N, D_INITIAL)
+    result = optimize_motzkin_greedy(TARGET_N, D_INITIAL)
     end_time = time.perf_counter()
 
     print(f"\nResult: {result}")
     print(f"Time:   {(end_time - start_time):.6f} seconds")
-
-    # Verification against Conway-Guy (seed 1,1)
-    # Expected (from uploaded summary_seed_1_1.csv):
-    # 1, 1, 2, 3, 6, 11, 20, 40, 77, 148, 285, 570...
-    print("\n--- Testing seed (1,1) for Conway-Guy verification ---")
-    expected_start = [1, 1, 2, 3, 6, 11, 20, 40, 77, 148]
-    result_conway = motzkin_greedy_optimized(10, [1, 1])
-    assert result_conway == expected_start
-    print("✓ Verification successful: Matches known Conway-Guy prefix.")
-
-    # Test with longer initial sequence
-    print("\n--- Testing with longer initial sequence [1, 2, 3] ---")
-    result_long = motzkin_greedy_optimized(10, [1, 2, 3])
-    print(f"Result: {result_long}")

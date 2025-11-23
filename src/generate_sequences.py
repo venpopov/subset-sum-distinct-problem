@@ -98,7 +98,7 @@ from typing import Dict, Any, List, Tuple
 from multiprocessing import Pool
 import logging
 
-from motzkin_greedy import motzkin_greedy
+from motzkin_greedy import motzkin_greedy_optimized
 from utils import P_from_d_prefix, parse_seed
 from ssd_check import (
     is_distinct_subset_sum_combinations,
@@ -117,7 +117,7 @@ def generate_for_seed(seed: str, max_n: int, out_dir: Path, check_ssd: bool) -> 
         d1, d2 = parse_seed(seed)
         logging.info(f"Starting: Seed (d1,d2) = ({d1},{d2}), max_n = {max_n}")
 
-        d_seq = motzkin_greedy(max_n, d1, d2)
+        d_seq = motzkin_greedy_optimized(max_n, d1, d2)
 
         out_dir.mkdir(parents=True, exist_ok=True)
 

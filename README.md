@@ -64,7 +64,7 @@ python src/generate_sequences.py --workers 12 --seeds 1,5 --max-n 20 --check-ssd
 To generate default sequences:
 
 ```bash
-python src/generate_sequences.py --workers 12 --check-ssd 
+python src/generate_sequences.py --workers 13 --check-ssd 
 ```
 
 To test DSS:

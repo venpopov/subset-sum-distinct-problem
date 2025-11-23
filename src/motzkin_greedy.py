@@ -1,101 +1,94 @@
-"""
-Motzkin–greedy construction for distinct subset sums.
-
-Core responsibilities:
-- Generate truncated Motzkin height profiles S'(n)
-- Compute F(n) of weighted areas
-- Compute the Motzkin–greedy difference sequence d(n)
-"""
-
-from functools import lru_cache
-from typing import List, Tuple, Dict
+import time
+from typing import List, Dict
 
 
-def _motzkin_trunc_profiles(n: int) -> List[Tuple[int, ...]]:
+def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
     """
-    Generate all truncated Motzkin height profiles z in S'(n).
+    Computes the Motzkin-greedy sequence using efficient Bitset DP.
 
-    A full profile h = (h_0,...,h_{n-1}) satisfies:
-        - h_0 = h_{n-1} = 0
-        - h_i >= 0
-        - |h_{i+1} - h_i| in { -1, 0, 1 }
-
-    We return z = (h_1,...,h_{n-2}) and exclude the completely flat path.
+    Optimizations:
+    1. Bitsets: Uses Python integers to represent sets of sums.
+       (e.g., bit 5 is '1' -> sum 5 is reachable).
+    2. Layer-by-Layer: Merges all paths ending at the same height/sum.
+    3. Incremental: Never re-computes early layers. State persists across n.
     """
-    res: List[Tuple[int, ...]] = []
+    # d is 1-based: d[1]=d1, d[2]=d2
+    d = [0, d1, d2]
 
-    def rec(pos: int, h: int, hs: List[int]) -> None:
-        """
-        pos: current index in 0..n-1
-        h:   current height
-        hs:  list of heights [h_0,...,h_pos]
-        """
-        if pos == n - 1:
-            # must return to 0
-            if h == 0:
-                z = hs[1:-1]
-                if any(z):  # exclude flat path
-                    res.append(tuple(z))
-            return
+    # DP State: layers[h] = bitmask of all reachable sums ending at height h
+    # Initial state: Step 0, Height 0, Sum 0 (2^0 = 1)
+    layers: Dict[int, int] = {0: 1}
 
-        remaining = (n - 1) - pos  # steps left
+    # Helper to advance the DP state by one step using a specific weight
+    def advance_layers(current_layers: Dict[int, int], weight: int) -> Dict[int, int]:
+        new_layers: Dict[int, int] = {}
+        for h, mask in current_layers.items():
+            # Try all valid Motzkin moves: delta in {-1, 0, +1}
+            for delta in (-1, 0, 1):
+                nh = h + delta
+                if nh < 0:
+                    continue
 
-        for delta in (-1, 0, 1):
-            nh = h + delta
-            if nh < 0:
-                continue
-            # must be able to get back to 0 in "remaining" steps with step size 1
-            if nh > remaining:
-                continue
-            rec(pos + 1, nh, hs + [nh])
+                # The area added by this step is (new_height * weight)
+                # We shift the bitmask left by this amount to add to all sums
+                shift_amount = nh * weight
+                shifted_mask = mask << shift_amount
 
-    rec(0, 0, [0])
-    return res
+                # Union with existing paths arriving at nh
+                if nh in new_layers:
+                    new_layers[nh] |= shifted_mask
+                else:
+                    new_layers[nh] = shifted_mask
+        return new_layers
 
+    # --- INITIALIZATION ---
+    # We start the loop at n=3, which requires the state at step n-2 = 1.
+    # So we must manually advance the state past d[1] first.
+    layers = advance_layers(layers, d[1])
 
-@lru_cache(None)
-def motzkin_trunc_profiles(n: int) -> List[Tuple[int, ...]]:
-    """
-    Cached wrapper for truncated Motzkin profiles S'(n).
-    """
-    return _motzkin_trunc_profiles(n)
-
-
-def motzkin_greedy(max_n: int, d1: int, d2: int) -> List[int]:
-    """
-    Compute the Motzkin–greedy difference sequence d(1)..d(max_n)
-    with initial seed (d(1), d(2)) = (d1, d2).
-
-    Recurrence:
-        For n > 2:
-            F(n) = { sum_{i=1}^{n-2} z(i)*d(i) : z in S'(n) }
-            d(n) = smallest positive integer NOT in F(n)
-
-    Returns:
-        d_seq: list [d(1), ..., d(max_n)]
-    """
-    if max_n < 1:
-        return []
-
-    d: Dict[int, int] = {1: d1}
-    if max_n >= 2:
-        d[2] = d2
-
+    # --- MAIN LOOP ---
     for n in range(3, max_n + 1):
-        z_list = motzkin_trunc_profiles(n)
-        F = set()
+        # 1. IDENTIFY FORBIDDEN SUMS
+        # To close the path at step n-1 (return to height 0),
+        # we must currently be at height 0 or height 1 (since max drop is 1).
+        # We combine these masks to get all "dangerous" sums.
+        forbidden_mask = layers.get(0, 0) | layers.get(1, 0)
 
-        for z in z_list:
-            s = 0
-            # z has length n-2, indices i = 1..n-2
-            for i, zi in enumerate(z, start=1):
-                s += zi * d[i]
-            if s > 0:
-                F.add(s)
-
+        # 2. FIND SMALLEST MISSING POSITIVE INTEGER
+        # We look for the first '0' bit starting from index 1.
         k = 1
-        while k in F:
+        while (forbidden_mask >> k) & 1:
             k += 1
-        d[n] = k
+        d.append(k)
 
-    return [d[i] for i in range(1, max_n + 1)]
+        # 3. ADVANCE STATE
+        # Prepare for the next n (which will need state at n-2).
+        # We just finished n, so we advance using d[n-1] to get to step n-1.
+        # Note: d is 1-based, so d[n-1] is the weight we just "passed".
+        if n < max_n:
+            weight_to_add = d[n - 1]  # Actually d[2] for n=3 loop preparing for n=4
+            layers = advance_layers(layers, weight_to_add)
+
+    return d[1:]
+
+
+if __name__ == "__main__":
+    # Benchmark Comparison
+    TARGET_N = 20
+    D1, D2 = 1, 1
+
+    print(f"Calculating Motzkin-greedy sequence for seed ({D1},{D2}) up to n={TARGET_N}...")
+
+    start_time = time.perf_counter()
+    result = motzkin_greedy_optimized(TARGET_N, D1, D2)
+    end_time = time.perf_counter()
+
+    print(f"\nResult: {result}")
+    print(f"Time:   {(end_time - start_time):.6f} seconds")
+
+    # Verification against your provided file data (first few terms of seed 1,1)
+    # Expected (from uploaded summary_seed_1_1.csv):
+    # 1, 1, 2, 3, 6, 11, 20, 40, 77, 148, 285, 570...
+    expected_start = [1, 1, 2, 3, 6, 11, 20, 40, 77, 148]
+    assert result[:10] == expected_start
+    print("\n✓ Verification successful: Matches known Conway-Guy prefix.")

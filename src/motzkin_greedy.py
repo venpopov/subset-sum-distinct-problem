@@ -54,11 +54,21 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
         # We combine these masks to get all "dangerous" sums.
         forbidden_mask = layers.get(0, 0) | layers.get(1, 0)
 
-        # 2. FIND SMALLEST MISSING POSITIVE INTEGER
-        # We look for the first '0' bit starting from index 1.
-        k = 1
-        while (forbidden_mask >> k) & 1:
-            k += 1
+        # 2. FIND SMALLEST MISSING POSITIVE INTEGER (Optimized)
+        # We want the index of the first '0' bit in forbidden_mask, starting at bit 1.
+        # Shift right to align bit 1 to bit 0
+        m = forbidden_mask >> 1
+
+        # Formula to isolate the lowest '0' bit:
+        # 1. ~m turns the 0 we want into a 1.
+        # 2. m + 1 creates a carry that ripples up to the first 0.
+        # The intersection gives us exactly the bit we are looking for.
+        lowest_zero_bit = (~m) & (m + 1)
+
+        # The index is the length of the binary representation minus 1 (since it's a power of 2)
+        # We add 1 because we shifted the mask initially.
+        k = lowest_zero_bit.bit_length()
+
         d.append(k)
 
         # 3. ADVANCE STATE
@@ -74,7 +84,7 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
 
 if __name__ == "__main__":
     # Benchmark Comparison
-    TARGET_N = 25
+    TARGET_N = 30
     D1, D2 = 2, 1
 
     print(f"Calculating Motzkin-greedy sequence for seed ({D1},{D2}) up to n={TARGET_N}...")

@@ -74,8 +74,8 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
 
 if __name__ == "__main__":
     # Benchmark Comparison
-    TARGET_N = 20
-    D1, D2 = 1, 1
+    TARGET_N = 25
+    D1, D2 = 2, 1
 
     print(f"Calculating Motzkin-greedy sequence for seed ({D1},{D2}) up to n={TARGET_N}...")
 

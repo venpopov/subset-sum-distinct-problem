@@ -2,9 +2,17 @@ import time
 from typing import List, Dict
 
 
-def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
+def motzkin_greedy_optimized(max_n: int, d_initial: List[int]) -> List[int]:
     """
     Computes the Motzkin-greedy sequence using efficient Bitset DP.
+
+    Args:
+        max_n: Maximum index n for the difference sequence to generate.
+        d_initial: Initial values for the sequence (at least 2 elements).
+                   These become d[1], d[2], d[3], ... d[len(d_initial)].
+
+    Returns:
+        Complete sequence d[1] through d[max_n].
 
     Optimizations:
     1. Bitsets: Uses Python integers to represent sets of sums.
@@ -12,8 +20,14 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
     2. Layer-by-Layer: Merges all paths ending at the same height/sum.
     3. Incremental: Never re-computes early layers. State persists across n.
     """
-    # d is 1-based: d[1]=d1, d[2]=d2
-    d = [0, d1, d2]
+    if len(d_initial) < 2:
+        raise ValueError("d_initial must contain at least 2 elements")
+
+    if max_n < len(d_initial):
+        return d_initial[:max_n]
+
+    # d is 1-based: d[0] is unused, d[1]=d_initial[0], d[2]=d_initial[1], etc.
+    d = [0] + list(d_initial)
 
     # DP State: layers[h] = bitmask of all reachable sums ending at height h
     # Initial state: Step 0, Height 0, Sum 0 (2^0 = 1)
@@ -42,12 +56,16 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
         return new_layers
 
     # --- INITIALIZATION ---
-    # We start the loop at n=3, which requires the state at step n-2 = 1.
-    # So we must manually advance the state past d[1] first.
-    layers = advance_layers(layers, d[1])
+    # We need to advance the state through all initial values
+    # The loop will start at n = len(d_initial) + 1
+    # For that iteration, we need the state at step n-2 = len(d_initial) - 1
+    # So we advance through d[1], d[2], ..., d[len(d_initial) - 1]
+    for i in range(1, len(d_initial)):
+        layers = advance_layers(layers, d[i])
 
     # --- MAIN LOOP ---
-    for n in range(3, max_n + 1):
+    start_n = len(d_initial) + 1
+    for n in range(start_n, max_n + 1):
         # 1. IDENTIFY FORBIDDEN SUMS
         # To close the path at step n-1 (return to height 0),
         # we must currently be at height 0 or height 1 (since max drop is 1).
@@ -83,22 +101,29 @@ def motzkin_greedy_optimized(max_n: int, d1: int, d2: int) -> List[int]:
 
 
 if __name__ == "__main__":
-    # Benchmark Comparison
+    # Test with seed (2, 1)
     TARGET_N = 30
-    D1, D2 = 2, 1
+    D_INITIAL = [2, 1]
 
-    print(f"Calculating Motzkin-greedy sequence for seed ({D1},{D2}) up to n={TARGET_N}...")
+    print(f"Calculating Motzkin-greedy sequence for seed {D_INITIAL} up to n={TARGET_N}...")
 
     start_time = time.perf_counter()
-    result = motzkin_greedy_optimized(TARGET_N, D1, D2)
+    result = motzkin_greedy_optimized(TARGET_N, D_INITIAL)
     end_time = time.perf_counter()
 
     print(f"\nResult: {result}")
     print(f"Time:   {(end_time - start_time):.6f} seconds")
 
-    # Verification against your provided file data (first few terms of seed 1,1)
+    # Verification against Conway-Guy (seed 1,1)
     # Expected (from uploaded summary_seed_1_1.csv):
     # 1, 1, 2, 3, 6, 11, 20, 40, 77, 148, 285, 570...
+    print("\n--- Testing seed (1,1) for Conway-Guy verification ---")
     expected_start = [1, 1, 2, 3, 6, 11, 20, 40, 77, 148]
-    assert result[:10] == expected_start
-    print("\n✓ Verification successful: Matches known Conway-Guy prefix.")
+    result_conway = motzkin_greedy_optimized(10, [1, 1])
+    assert result_conway == expected_start
+    print("✓ Verification successful: Matches known Conway-Guy prefix.")
+
+    # Test with longer initial sequence
+    print("\n--- Testing with longer initial sequence [1, 2, 3] ---")
+    result_long = motzkin_greedy_optimized(10, [1, 2, 3])
+    print(f"Result: {result_long}")

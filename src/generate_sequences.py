@@ -8,8 +8,9 @@ separate worker process. All available CPU cores are utilized by default.
 COMMAND-LINE ARGUMENTS:
 
     --seeds SEED [SEED ...]
-        Space-separated list of seeds in format 'd1,d2'.
-        Example: --seeds 2,1 1,1 3,2
+        Space-separated list of seeds in format 'd1,d2,...'.
+        Each seed must have at least 2 comma-separated integers.
+        Example: --seeds 2,1 1,1 3,2 or --seeds 1,2,3 2,1,1
         Default: All 13 standard seeds (1,1) (1,2) (1,3) (1,4) (2,1) (2,2) (2,3)
                                           (3,1) (3,2) (3,3) (4,1) (4,3) (4,4)
 
@@ -20,10 +21,10 @@ COMMAND-LINE ARGUMENTS:
     --out-dir PATH
         Output directory for all generated files (default: 'data').
         Creates the directory if it doesn't exist.
-        Output files:
-            - seed_{d1}_{d2}_d.csv       : Difference sequence as comma-separated values
-            - P_sets_seed_{d1}_{d2}.json : Per-n data (P values, SSD flags, collision info)
-            - summary_seed_{d1}_{d2}.csv : Tabular summary (n, d_n, maxP, SSD_flag)
+        Output files (seed elements joined with underscores):
+            - seed_{d1}_{d2}...{dn}_d.csv       : Difference sequence as comma-separated values
+            - P_sets_seed_{d1}_{d2}...{dn}.json : Per-n data (P values, SSD flags, collision info)
+            - summary_seed_{d1}_{d2}...{dn}.csv : Tabular summary (n, d_n, maxP, SSD_flag)
 
     --check-ssd
         Enable DSS (distinct subset sum) verification using the optimized bitset algorithm.
@@ -103,7 +104,7 @@ from multiprocessing import Pool
 import logging
 
 from motzkin_greedy import motzkin_greedy_optimized
-from utils import P_from_d_prefix, parse_seed
+from utils import P_from_d_prefix, parse_seed_list
 from ssd_check import (
     is_distinct_subset_sum_combinations,
     is_distinct_subset_sum_bitmask,
@@ -121,15 +122,16 @@ def generate_for_seed(
     Generate sequences for a single seed. Returns (seed_str, success).
     """
     try:
-        d1, d2 = parse_seed(seed)
-        logging.info(f"Starting: Seed (d1,d2) = ({d1},{d2}), max_n = {max_n}")
+        d_initial = parse_seed_list(seed)
+        seed_label = "_".join(str(x) for x in d_initial)
+        logging.info(f"Starting: Seed {d_initial}, max_n = {max_n}")
 
-        d_seq = motzkin_greedy_optimized(max_n, d1, d2)
+        d_seq = motzkin_greedy_optimized(max_n, d_initial)
 
         out_dir.mkdir(parents=True, exist_ok=True)
 
         # Save d-sequence
-        d_file = out_dir / f"seed_{d1}_{d2}_d.csv"
+        d_file = out_dir / f"seed_{seed_label}_d.csv"
         with d_file.open("w") as f:
             f.write(",".join(str(x) for x in d_seq) + "\n")
 
@@ -157,7 +159,7 @@ def generate_for_seed(
                     ok_b, info_b = is_distinct_subset_sum_bitmask(Pn)
                     # they should agree
                     if ok_c != ok_b:
-                        logging.warning(f"Seed ({d1},{d2}), n={n}: SSD checkers disagree")
+                        logging.warning(f"Seed {d_initial}, n={n}: SSD checkers disagree")
                     ok = ok_c and ok_b
                     ssd_flags.append(1 if ok else 0)
                     record["ssd"] = ok
@@ -175,12 +177,12 @@ def generate_for_seed(
             P_data[n] = record
 
         # Save P data as JSON
-        P_file = out_dir / f"P_sets_seed_{d1}_{d2}.json"
+        P_file = out_dir / f"P_sets_seed_{seed_label}.json"
         with P_file.open("w") as f:
             json.dump(P_data, f, indent=2)
 
         # Save summary table
-        summary_file = out_dir / f"summary_seed_{d1}_{d2}.csv"
+        summary_file = out_dir / f"summary_seed_{seed_label}.csv"
         with summary_file.open("w") as f:
             f.write("n,d_n,maxP,SSD_flag\n")
             for n in range(1, max_n + 1):
@@ -189,7 +191,7 @@ def generate_for_seed(
                 ssd_flag = ssd_flags[n - 1] if check_ssd else -1
                 f.write(f"{n},{d_n},{maxP},{ssd_flag}\n")
 
-        logging.info(f"Completed: Seed ({d1},{d2})")
+        logging.info(f"Completed: Seed {d_initial}")
         return (seed, True)
     except Exception as e:
         logging.error(f"Failed to process seed {seed}: {e}")

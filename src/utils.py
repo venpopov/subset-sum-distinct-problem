@@ -38,3 +38,20 @@ def parse_seed(seed_str: str) -> Tuple[int, int]:
     except ValueError:
         raise ValueError(f"Seed components must be integers: {seed_str!r}")
     return a, b
+
+
+def parse_seed_list(seed_str: str) -> List[int]:
+    """
+    Parse a seed string of the form 'a,b,...' into a list [a, b, ...].
+
+    Example:
+        '2,1' -> [2, 1]
+        '1,2,3' -> [1, 2, 3]
+    """
+    parts = seed_str.split(",")
+    if len(parts) < 2:
+        raise ValueError(f"Invalid seed format: {seed_str!r}, expected at least 2 comma-separated integers")
+    try:
+        return [int(part.strip()) for part in parts]
+    except ValueError:
+        raise ValueError(f"Seed components must be integers: {seed_str!r}")

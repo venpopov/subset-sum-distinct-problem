@@ -1,0 +1,368 @@
+{
+  "1": {
+    "n": 1,
+    "P": [
+      6
+    ],
+    "maxP": 6,
+    "ssd": true
+  },
+  "2": {
+    "n": 2,
+    "P": [
+      9,
+      3
+    ],
+    "maxP": 9,
+    "ssd": true
+  },
+  "3": {
+    "n": 3,
+    "P": [
+      11,
+      5,
+      2
+    ],
+    "maxP": 11,
+    "ssd": true
+  },
+  "4": {
+    "n": 4,
+    "P": [
+      12,
+      6,
+      3,
+      1
+    ],
+    "maxP": 12,
+    "ssd": true
+  },
+  "5": {
+    "n": 5,
+    "P": [
+      16,
+      10,
+      7,
+      5,
+      4
+    ],
+    "maxP": 16,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 4"
+  },
+  "6": {
+    "n": 6,
+    "P": [
+      29,
+      23,
+      20,
+      18,
+      17,
+      13
+    ],
+    "maxP": 29,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 13"
+  },
+  "7": {
+    "n": 7,
+    "P": [
+      52,
+      46,
+      43,
+      41,
+      40,
+      36,
+      23
+    ],
+    "maxP": 52,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 36"
+  },
+  "8": {
+    "n": 8,
+    "P": [
+      95,
+      89,
+      86,
+      84,
+      83,
+      79,
+      66,
+      43
+    ],
+    "maxP": 95,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 79"
+  },
+  "9": {
+    "n": 9,
+    "P": [
+      179,
+      173,
+      170,
+      168,
+      167,
+      163,
+      150,
+      127,
+      84
+    ],
+    "maxP": 179,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 163"
+  },
+  "10": {
+    "n": 10,
+    "P": [
+      343,
+      337,
+      334,
+      332,
+      331,
+      327,
+      314,
+      291,
+      248,
+      164
+    ],
+    "maxP": 343,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 327"
+  },
+  "11": {
+    "n": 11,
+    "P": [
+      657,
+      651,
+      648,
+      646,
+      645,
+      641,
+      628,
+      605,
+      562,
+      478,
+      314
+    ],
+    "maxP": 657,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 641"
+  },
+  "12": {
+    "n": 12,
+    "P": [
+      1262,
+      1256,
+      1253,
+      1251,
+      1250,
+      1246,
+      1233,
+      1210,
+      1167,
+      1083,
+      919,
+      605
+    ],
+    "maxP": 1262,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 1246"
+  },
+  "13": {
+    "n": 13,
+    "P": [
+      2472,
+      2466,
+      2463,
+      2461,
+      2460,
+      2456,
+      2443,
+      2420,
+      2377,
+      2293,
+      2129,
+      1815,
+      1210
+    ],
+    "maxP": 2472,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 2456"
+  },
+  "14": {
+    "n": 14,
+    "P": [
+      4849,
+      4843,
+      4840,
+      4838,
+      4837,
+      4833,
+      4820,
+      4797,
+      4754,
+      4670,
+      4506,
+      4192,
+      3587,
+      2377
+    ],
+    "maxP": 4849,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 4833"
+  },
+  "15": {
+    "n": 15,
+    "P": [
+      9519,
+      9513,
+      9510,
+      9508,
+      9507,
+      9503,
+      9490,
+      9467,
+      9424,
+      9340,
+      9176,
+      8862,
+      8257,
+      7047,
+      4670
+    ],
+    "maxP": 9519,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 9503"
+  },
+  "16": {
+    "n": 16,
+    "P": [
+      18695,
+      18689,
+      18686,
+      18684,
+      18683,
+      18679,
+      18666,
+      18643,
+      18600,
+      18516,
+      18352,
+      18038,
+      17433,
+      16223,
+      13846,
+      9176
+    ],
+    "maxP": 18695,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 18679"
+  },
+  "17": {
+    "n": 17,
+    "P": [
+      36733,
+      36727,
+      36724,
+      36722,
+      36721,
+      36717,
+      36704,
+      36681,
+      36638,
+      36554,
+      36390,
+      36076,
+      35471,
+      34261,
+      31884,
+      27214,
+      18038
+    ],
+    "maxP": 36733,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 36717"
+  },
+  "18": {
+    "n": 18,
+    "P": [
+      72809,
+      72803,
+      72800,
+      72798,
+      72797,
+      72793,
+      72780,
+      72757,
+      72714,
+      72630,
+      72466,
+      72152,
+      71547,
+      70337,
+      67960,
+      63290,
+      54114,
+      36076
+    ],
+    "maxP": 72809,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 72793"
+  },
+  "19": {
+    "n": 19,
+    "P": [
+      144356,
+      144350,
+      144347,
+      144345,
+      144344,
+      144340,
+      144327,
+      144304,
+      144261,
+      144177,
+      144013,
+      143699,
+      143094,
+      141884,
+      139507,
+      134837,
+      125661,
+      107623,
+      71547
+    ],
+    "maxP": 144356,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 144340"
+  },
+  "20": {
+    "n": 20,
+    "P": [
+      286240,
+      286234,
+      286231,
+      286229,
+      286228,
+      286224,
+      286211,
+      286188,
+      286145,
+      286061,
+      285897,
+      285583,
+      284978,
+      283768,
+      281391,
+      276721,
+      267545,
+      249507,
+      213431,
+      141884
+    ],
+    "maxP": 286240,
+    "ssd": false,
+    "collision_optimized": "Collision detected involving 286224"
+  }
+}

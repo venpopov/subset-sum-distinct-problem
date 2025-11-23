@@ -22,7 +22,6 @@ COMMAND-LINE ARGUMENTS:
         Output directory for all generated files (default: 'data').
         Creates the directory if it doesn't exist.
         Output files (seed elements joined with underscores):
-            - seed_{d1}_{d2}...{dn}_d.csv       : Difference sequence as comma-separated values
             - P_sets_seed_{d1}_{d2}...{dn}.json : Per-n data (P values, SSD flags, collision info)
             - summary_seed_{d1}_{d2}...{dn}.csv : Tabular summary (n, d_n, maxP, SSD_flag)
 
@@ -62,13 +61,9 @@ USAGE EXAMPLES:
 
 OUTPUT SUMMARY:
 
-For each processed seed, the script generates three files in <out-dir>:
+For each processed seed, the script generates two files in <out-dir>:
 
-    1. seed_{d1}_{d2}_d.csv
-       - Single row containing the difference sequence
-       - Comma-separated values: d(1),d(2),...,d(n)
-
-    2. P_sets_seed_{d1}_{d2}.json
+    1. P_sets_seed_{d1}_{d2}.json
        - JSON object with n as keys (1 to max_n)
        - Each entry contains:
            n: index
@@ -78,13 +73,13 @@ For each processed seed, the script generates three files in <out-dir>:
            collision_combinations: collision info (if not DSS)
            collision_bitmask: collision info (if not DSS)
 
-    3. summary_seed_{d1}_{d2}.csv
+    2. summary_seed_{d1}_{d2}.csv
        - CSV table with columns: n, d_n, maxP, SSD_flag
        - One row per index, useful for analysis and plotting
 
 PARALLEL EXECUTION:
 
-This script uses Python's multiprocessing.Pool to distribute seed processing
+This script uses Python's multiprocessing. Pool to distribute seed processing
 across available CPU cores. Each seed runs independently, so:
 - One seed's failure does not halt processing of others
 - Processing is load-balanced across workers
@@ -129,11 +124,6 @@ def generate_for_seed(
         d_seq = motzkin_greedy_optimized(max_n, d_initial)
 
         out_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save d-sequence
-        d_file = out_dir / f"seed_{seed_label}_d.csv"
-        with d_file.open("w") as f:
-            f.write(",".join(str(x) for x in d_seq) + "\n")
 
         # Build P_n and optionally check SSD
         P_data: Dict[int, Dict[str, Any]] = {}

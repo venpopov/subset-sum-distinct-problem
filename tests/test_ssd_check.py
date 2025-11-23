@@ -5,9 +5,10 @@ from src import ssd_check
 
 is_distinct_subset_sum_combinations = ssd_check.is_distinct_subset_sum_combinations
 is_distinct_subset_sum_bitmask = ssd_check.is_distinct_subset_sum_bitmask
+is_distinct_subset_sum_optimized = ssd_check.is_distinct_subset_sum_optimized
 
 
-CHECKERS = [is_distinct_subset_sum_combinations, is_distinct_subset_sum_bitmask]
+CHECKERS = [is_distinct_subset_sum_combinations, is_distinct_subset_sum_bitmask, is_distinct_subset_sum_optimized]
 
 
 @pytest.mark.parametrize("checker", CHECKERS)
@@ -78,16 +79,23 @@ def test_known_bad_sequences(checker, nums):
     """These sequences are guaranteed to produce a subset-sum collision."""
     ok, info = checker(nums)
     assert ok is False
-    # info should be a tuple: (subset1, subset2, sum)
-    assert isinstance(info, tuple) and len(info) == 3
-    subset1, subset2, s = info
-    assert isinstance(subset1, tuple)
-    assert isinstance(subset2, tuple)
-    # the reported subsets must actually sum to the reported sum
-    assert sum(subset1) == s
-    assert sum(subset2) == s
-    # the two subsets should be different as tuples (or come from different choices)
-    assert subset1 == subset2 or sum(subset1) == sum(subset2)
+
+    # is_distinct_subset_sum_optimized returns a string message, others return tuple
+    if checker == is_distinct_subset_sum_optimized:
+        # info should be a string describing the collision
+        assert isinstance(info, str)
+        assert "collision" in info.lower()
+    else:
+        # info should be a tuple: (subset1, subset2, sum)
+        assert isinstance(info, tuple) and len(info) == 3
+        subset1, subset2, s = info
+        assert isinstance(subset1, tuple)
+        assert isinstance(subset2, tuple)
+        # the reported subsets must actually sum to the reported sum
+        assert sum(subset1) == s
+        assert sum(subset2) == s
+        # the two subsets should be different as tuples (or come from different choices)
+        assert subset1 == subset2 or sum(subset1) == sum(subset2)
 
 
 @pytest.mark.parametrize("checker", CHECKERS)
@@ -101,7 +109,10 @@ def test_order_invariance_for_bad_sequence(checker):
     for nums in perms:
         ok, info = checker(list(nums))
         assert ok is False
-        assert isinstance(info, tuple)
+        if checker == is_distinct_subset_sum_optimized:
+            assert isinstance(info, str)
+        else:
+            assert isinstance(info, tuple)
 
 
 @pytest.mark.parametrize("checker", CHECKERS)
@@ -132,4 +143,7 @@ def test_random_duplicate_cases(checker):
         # With duplicates there's a good chance of collision; if not, at least verify function runs
         assert isinstance(ok, bool)
         if not ok:
-            assert isinstance(info, tuple) and len(info) == 3
+            if checker == is_distinct_subset_sum_optimized:
+                assert isinstance(info, str)
+            else:
+                assert isinstance(info, tuple) and len(info) == 3

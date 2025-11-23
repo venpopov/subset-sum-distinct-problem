@@ -57,8 +57,8 @@ All data and verification logs are included in `/data` and `/results`.
 To generate some sequences (parallel cores):
 
 ```bash
-python src/generate_sequences.py --workers 3 --seeds 1,1 2,1 3,2 --max-n 27 --check-ssd
-python src/generate_sequences.py --workers 12 --seeds 3,4 3,5 3,6 6,1 6,2 6,3 6,4  --max-n 22 --check-ssd
+python src/generate_sequences.py --workers 3 --seeds 1,2 --max-n 27 --check-ssd
+python src/generate_sequences.py --workers 3 --seeds 3,4 3,5 3,6 6,1 6,2 6,3 6,4  --max-n 22 --check-ssd
 ```
 
 To generate default sequences:

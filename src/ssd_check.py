@@ -5,6 +5,7 @@ We provide two different implementations:
 
 1. combinations-based: uses itertools.combinations over all subset sizes
 2. bitmask-based: uses integer masks 0..2^n - 1
+3. bitsets-based
 
 Both return:
     (bool, info)
@@ -77,6 +78,30 @@ def is_distinct_subset_sum_bitmask(nums: List[int]) -> CheckResult:
 
     return True, "All subset sums are distinct."
 
+def is_distinct_subset_sum_optimized(nums: List[int]) -> Tuple[bool, str]:
+    """
+    Optimized DSS check using bitsets.
+    Complexity: O(n * sum(P) / 64) instead of O(2^n).
+    """
+    # Bitmask representing {0}.
+    # Bit i is 1 if sum 'i' is possible.
+    reachable = 1
+
+    total_sum = 0
+
+    for x in nums:
+        # Shift reachable left by x to get all new sums formed by adding x.
+        # If (reachable & shifted) is non-zero, it means a sum in the 'new' set
+        # overlaps with a sum in the 'old' set. Collision!
+        if reachable & (reachable << x):
+            return False, f"Collision detected involving {x}"
+
+        # Merge the new sums into the reachable set
+        reachable |= reachable << x
+        total_sum += x
+
+    return True, "All subset sums are distinct."
+
 
 if __name__ == "__main__":
     # Small self-check / demo
@@ -88,8 +113,11 @@ if __name__ == "__main__":
     for name, nums in test_sets.items():
         ok_c, info_c = is_distinct_subset_sum_combinations(nums)
         ok_b, info_b = is_distinct_subset_sum_bitmask(nums)
-        print(f"{name}: comb_ok={ok_c}, mask_ok={ok_b}")
+        ok_o, info_o = is_distinct_subset_sum_optimized(nums)
+        print(f"{name}: comb_ok={ok_c}, mask_ok={ok_b}, opt_ok={ok_o}")
         if not ok_c:
             print("  combinations collision:", info_c)
         if not ok_b:
             print("  bitmask collision:", info_b)
+        if not ok_o:
+            print("  bitsets collision:", info_o)
